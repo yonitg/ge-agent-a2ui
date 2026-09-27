@@ -83,6 +83,7 @@ The agent runs as a containerized Starlette/A2A service on Google Cloud Run. Inc
 1. **Python 3.12+** and [uv](https://docs.astral.sh/uv/) installed.
 2. Google Cloud SDK (`gcloud`) installed and authenticated:
    ```bash
+   gcloud auth login
    gcloud auth application-default login
    ```
 
@@ -122,14 +123,14 @@ The server will start at `http://127.0.0.1:8080`.
 Verify health and agent metadata:
 ```bash
 curl http://127.0.0.1:8080/health
-curl http://127.0.0.1:8080/.well-known/agent.json
+curl http://127.0.0.1:8080/.well-known/agent-card.json
 ```
 
 ---
 
 ## ☁️ One-Click Cloud Run Deployment
 
-Deploy the entire agent to **Google Cloud Run** using the automated deployment script:
+Deploy the entire agent to **Google Cloud Run** using the automated deployment script (works from any working directory and in Cloud Shell):
 
 ```bash
 ./deploy.sh <YOUR_PROJECT_ID> [SERVICE_NAME] [REGION] [MODEL_NAME]
@@ -147,13 +148,13 @@ export GEMINI_ENTERPRISE_LOCATION=global   # or "eu" / "us", matching your app's
 ./deploy.sh my-gcp-project
 ```
 
-The script will automatically:
-1. Enable required APIs (`run.googleapis.com`, `cloudbuild.googleapis.com`, `aiplatform.googleapis.com`, `artifactregistry.googleapis.com`).
-2. Build and deploy the container from source code as a **private** Cloud Run service (`--no-allow-unauthenticated`, max 1 instance).
-3. Configure the service `AGENT_URL` in the service metadata.
-4. Grant the Gemini Enterprise service agent (`service-<PROJECT_NUMBER>@gcp-sa-discoveryengine.iam.gserviceaccount.com`) the Cloud Run Invoker role on the service.
-5. Register the agent in Gemini Enterprise (only if `GEMINI_ENTERPRISE_ENGINE_ID` is set; otherwise it prints the manual command).
-6. Output the service URL, health check, and Agent Card endpoint.
+The script runs preflight checks (`gcloud` login, project access, and `python3` when registering) and then automatically:
+1. Enables required APIs (`run.googleapis.com`, `cloudbuild.googleapis.com`, `artifactregistry.googleapis.com`, `aiplatform.googleapis.com`, `iam.googleapis.com`).
+2. Creates a dedicated least-privilege runtime service account (`a2ui-agent-runtime@<PROJECT_ID>.iam.gserviceaccount.com`) if needed and grants it only `roles/aiplatform.user`.
+3. Builds and deploys the container from source as a **private** Cloud Run service (`--no-allow-unauthenticated`, `--service-account`, max 1 instance), preserving `AGENT_URL` across redeploys so a redeploy creates a single revision.
+4. Sets `AGENT_URL` on first deploy and grants the Gemini Enterprise service agent (`service-<PROJECT_NUMBER>@gcp-sa-discoveryengine.iam.gserviceaccount.com`) the Cloud Run Invoker role (`roles/run.invoker`) on the service.
+5. Smoke-tests `/health` and `/.well-known/agent-card.json` against the deployed service.
+6. Registers or updates the agent in Gemini Enterprise (when `GEMINI_ENTERPRISE_ENGINE_ID` is set; otherwise prints the manual command).
 
 Optional settings (environment variables):
 
@@ -162,6 +163,8 @@ Optional settings (environment variables):
 | `GEMINI_ENTERPRISE_ENGINE_ID` | *(unset)* | Gemini Enterprise app ID to register the agent in. |
 | `GEMINI_ENTERPRISE_LOCATION` | `global` | Location of the Gemini Enterprise app (`global`, `eu` or `us`). |
 | `GEMINI_ENTERPRISE_PROJECT_ID` | deploy project | Project that hosts the Gemini Enterprise app, if different. |
+| `GEMINI_ENTERPRISE_DISPLAY_NAME` | `A2UI 0.9 ADK Agent` | Agent display name in Gemini Enterprise. |
+| `RUNTIME_SERVICE_ACCOUNT` | `a2ui-agent-runtime` | Service account ID (created in the deploy project if missing) or full email of an existing service account to run the service as. |
 | `MAX_INSTANCES` | `1` | Cloud Run max instances. Sessions and reports are kept in memory, so one instance keeps the demo consistent and caps Vertex AI spend. |
 | `ALLOW_UNAUTHENTICATED` | `false` | Set to `true` only for a throwaway public demo. |
 
@@ -250,6 +253,7 @@ Gemini Enterprise will invoke the agent via A2A, receive the declarative A2UI pa
 
 This is a demo. Before you adapt it:
 * **Keep the service private.** `deploy.sh` deploys with `--no-allow-unauthenticated`; only principals with Cloud Run Invoker on the service (you and the Gemini Enterprise service agent) can call it. `ALLOW_UNAUTHENTICATED=true` exposes the agent, its Vertex AI usage and the reports to anyone who finds the URL.
+* **Dedicated runtime service account.** `deploy.sh` runs the service as `a2ui-agent-runtime@<PROJECT_ID>.iam.gserviceaccount.com` with only `roles/aiplatform.user`, rather than the default Compute Engine service account.
 * **In-app token check is for non-Cloud Run hosting only.** `ENFORCE_IAM_AUTH` / `ALLOWED_SERVICE_ACCOUNTS` verify `Authorization: Bearer` ID tokens minted for `AGENT_URL`. On Cloud Run, Gemini Enterprise sends its token in `X-Serverless-Authorization`, which Cloud Run IAM consumes, so leave these unset there.
 * **Demo storage.** Reports live in `/tmp/reports.json` and generated sketches in memory. They are shared by all users of the instance and reset when it restarts. Use a real database with per-user access control for anything beyond a demo.
 * **Unprivileged container.** The image runs as UID 10001, not root. The code and its virtualenv are read-only to that user; the app only writes to `/tmp`.
