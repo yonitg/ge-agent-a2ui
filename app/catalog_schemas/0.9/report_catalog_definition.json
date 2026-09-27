@@ -1,0 +1,241 @@
+{
+  "catalogId": "https://www.gstatic.com/vertexaisearch/a2ui/v0_9/gemini_enterprise_composite_catalog.json",
+  "components": {
+    "MaterialTabs": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialTabs" },
+        "activeTab": { "type": ["number", "object"] },
+        "tabs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "label": { "type": "string" },
+              "content": { "type": ["object", "array", "string"] }
+            }
+          }
+        }
+      },
+      "required": ["component", "tabs"]
+    },
+    "MaterialTable": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialTable" },
+        "columns": { "type": "array" },
+        "rows": { "type": "array" }
+      },
+      "required": ["component", "columns", "rows"]
+    },
+    "MaterialGridList": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialGridList" },
+        "cols": { "type": "number" },
+        "rowHeight": { "type": "string" },
+        "children": { "type": "array" }
+      },
+      "required": ["component"]
+    },
+    "MaterialDialog": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialDialog" },
+        "title": { "type": "string" },
+        "content": { "type": ["object", "array"] },
+        "actions": { "type": "array" }
+      },
+      "required": ["component"]
+    },
+    "MaterialSlider": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialSlider" },
+        "label": { "type": "string" },
+        "min": { "type": "number" },
+        "max": { "type": "number" },
+        "step": { "type": "number" },
+        "value": { "type": ["number", "object"] },
+        "event": { "type": "object" }
+      },
+      "required": ["component"]
+    },
+    "MaterialDatepicker": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialDatepicker" },
+        "label": { "type": "string" },
+        "value": { "type": ["string", "object"] },
+        "event": { "type": "object" }
+      },
+      "required": ["component"]
+    },
+    "MaterialBadge": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialBadge" },
+        "content": { "type": "string" },
+        "color": { "type": "string" },
+        "child": { "type": "object" }
+      },
+      "required": ["component", "content"]
+    },
+    "MaterialCard": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialCard" },
+        "title": { "type": "string" },
+        "subtitle": { "type": "string" },
+        "children": { "type": "array" },
+        "actions": { "type": "array" }
+      },
+      "required": ["component"]
+    },
+    "MaterialColumn": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialColumn" },
+        "justify": { "type": "string" },
+        "align": { "type": "string" },
+        "children": { "type": "array" }
+      },
+      "required": ["component"]
+    },
+    "MaterialRow": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialRow" },
+        "justify": { "type": "string" },
+        "align": { "type": "string" },
+        "children": { "type": "array" }
+      },
+      "required": ["component"]
+    },
+    "MaterialButton": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialButton" },
+        "label": { "type": "string" },
+        "variant": { "type": "string" },
+        "color": { "type": "string" },
+        "event": { "type": "object" }
+      },
+      "required": ["component", "label"]
+    },
+    "MaterialIconButton": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialIconButton" },
+        "icon": { "type": "string" },
+        "tooltip": { "type": "string" },
+        "event": { "type": "object" }
+      },
+      "required": ["component", "icon"]
+    },
+    "MaterialSelect": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialSelect" },
+        "label": { "type": "string" },
+        "options": { "type": "array" },
+        "value": { "type": ["string", "object"] },
+        "event": { "type": "object" }
+      },
+      "required": ["component"]
+    },
+    "MaterialInput": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialInput" },
+        "label": { "type": "string" },
+        "value": { "type": ["string", "object"] },
+        "event": { "type": "object" }
+      },
+      "required": ["component"]
+    },
+    "MaterialSlideToggle": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialSlideToggle" },
+        "label": { "type": "string" },
+        "checked": { "type": ["boolean", "object"] },
+        "event": { "type": "object" }
+      },
+      "required": ["component"]
+    },
+    "MaterialChips": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialChips" },
+        "chips": { "type": "array" },
+        "event": { "type": "object" }
+      },
+      "required": ["component"]
+    },
+    "MaterialImage": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialImage" },
+        "url": { "type": "string" },
+        "alt": { "type": "string" },
+        "fit": { "type": "string" },
+        "width": { "type": "string" },
+        "height": { "type": "string" },
+        "aspectRatio": { "type": "string" },
+        "borderRadius": { "type": "string" }
+      },
+      "required": ["component", "url"]
+    },
+    "IFrameSrcdoc": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "IFrameSrcdoc" },
+        "htmlContent": { "type": "string" },
+        "height": { "type": "number" },
+        "title": { "type": "string" }
+      },
+      "required": ["component", "htmlContent"]
+    },
+    "IFrameUrl": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "IFrameUrl" },
+        "url": { "type": "string" },
+        "height": { "type": "number" },
+        "title": { "type": "string" }
+      },
+      "required": ["component", "url"]
+    },
+    "Canvas": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "Canvas" },
+        "cardTitle": { "type": "string" },
+        "cardDescription": { "type": "string" },
+        "cardIcon": { "type": "string" },
+        "autoOpen": { "type": "boolean" },
+        "children": { "type": "array" }
+      },
+      "required": ["component", "children"]
+    },
+    "MaterialText": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialText" },
+        "text": { "type": "string" },
+        "variant": { "type": "string" }
+      },
+      "required": ["component", "text"]
+    },
+    "MaterialProgressBar": {
+      "type": "object",
+      "properties": {
+        "component": { "const": "MaterialProgressBar" },
+        "value": { "type": "number" },
+        "label": { "type": "string" }
+      },
+      "required": ["component"]
+    }
+  }
+}

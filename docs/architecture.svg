@@ -1,0 +1,131 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 460" width="100%" height="100%">
+  <defs>
+    <style>
+      .title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 18px; font-weight: 700; fill: #1e293b; }
+      .subtitle { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 13px; font-weight: 500; fill: #64748b; }
+      .box-title { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; font-weight: 600; fill: #0f172a; }
+      .box-desc { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 11px; fill: #64748b; }
+      .tag { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 10px; font-weight: 600; fill: #ffffff; }
+      .conn-label { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 11px; font-weight: 600; fill: #2563eb; }
+      .flow-arrow { stroke: #3b82f6; stroke-width: 2; stroke-dasharray: 6,4; fill: none; }
+      .solid-arrow { stroke: #64748b; stroke-width: 2; fill: none; }
+    </style>
+    <filter id="shadow" x="-5%" y="-5%" width="110%" height="110%" filterUnits="userSpaceOnUse">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.06"/>
+    </filter>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#3b82f6"/>
+    </marker>
+    <marker id="arrow-slate" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M 0 1 L 10 5 L 0 9 z" fill="#64748b"/>
+    </marker>
+    <linearGradient id="cloudrun-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f8fafc"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="960" height="460" rx="16" fill="#f8fafc" stroke="#e2e8f0" stroke-width="1.5"/>
+
+  <!-- ================= 1. CLIENT LAYER ================= -->
+  <g transform="translate(30, 40)">
+    <rect width="210" height="380" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="210" height="40" rx="12" fill="#eff6ff"/>
+    <path d="M 0 28 Q 0 40 12 40 L 198 40 Q 210 40 210 28 L 210 40 L 0 40 Z" fill="#eff6ff"/>
+    <text x="16" y="26" class="title" fill="#1d4ed8">Client Tier</text>
+
+    <!-- Component 1: Gemini Enterprise -->
+    <rect x="15" y="60" width="180" height="74" rx="8" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="25" y="84" class="box-title">Gemini Enterprise</text>
+    <text x="25" y="102" class="box-desc">Chat &amp; Assistant Host</text>
+    <text x="25" y="118" class="box-desc">Discovery Engine Registry</text>
+
+    <!-- Component 2: A2UI Webview Renderer -->
+    <rect x="15" y="150" width="180" height="94" rx="8" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="25" y="174" class="box-title">A2UI Native Renderer</text>
+    <text x="25" y="192" class="box-desc">Sandboxed Client Webview</text>
+    <text x="25" y="208" class="box-desc">• Material 3 (Table, Tabs)</text>
+    <text x="25" y="224" class="box-desc">• Vega-Lite Charts, Sliders</text>
+
+    <!-- Component 3: User Interaction Loop -->
+    <rect x="15" y="260" width="180" height="80" rx="8" fill="#f1f5f9" stroke="#cbd5e1"/>
+    <text x="25" y="284" class="box-title">Event Loop</text>
+    <text x="25" y="302" class="box-desc">Dynamic filter actions</text>
+    <text x="25" y="318" class="box-desc">Form submissions &amp; clicks</text>
+  </g>
+
+  <!-- ================= 2. CLOUD RUN (STANDALONE) ================= -->
+  <g transform="translate(290, 40)">
+    <rect width="380" height="380" rx="12" fill="url(#cloudrun-grad)" stroke="#3b82f6" stroke-width="2" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="380" height="42" rx="12" fill="#2563eb"/>
+    <path d="M 0 30 Q 0 42 12 42 L 368 42 Q 380 42 380 30 L 380 42 L 0 42 Z" fill="#2563eb"/>
+    <text x="18" y="27" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="16px" font-weight="700" fill="#ffffff">Google Cloud Run (Standalone Agent)</text>
+
+    <!-- Sub-component 1: Starlette & A2A Server -->
+    <rect x="20" y="60" width="340" height="52" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+    <text x="32" y="82" class="box-title">A2A Starlette Application (:8080)</text>
+    <text x="32" y="98" class="box-desc">/.well-known/agent-card.json  |  /a2a/app  |  /health</text>
+
+    <!-- Sub-component 2: Executor & ADK Runner -->
+    <rect x="20" y="122" width="340" height="54" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+    <text x="32" y="144" class="box-title">A2A Agent Executor &amp; ADK Runner</text>
+    <text x="32" y="160" class="box-desc">A2UI Event Converter &amp; Wire Protocol Serializer</text>
+
+    <!-- Sub-component 3: LlmAgent & Prompts -->
+    <rect x="20" y="186" width="340" height="56" rx="8" fill="#ffffff" stroke="#cbd5e1"/>
+    <text x="32" y="208" class="box-title">Google ADK LlmAgent</text>
+    <text x="32" y="224" class="box-desc">Orchestration, Disambiguated Prompts &amp; Schema Managers</text>
+
+    <!-- Sub-component 4: Native A2UI v0.9 Render Tools -->
+    <rect x="20" y="252" width="340" height="58" rx="8" fill="#eff6ff" stroke="#93c5fd"/>
+    <text x="32" y="274" class="box-title" fill="#1d4ed8">Native A2UI v0.9 Render Tools</text>
+    <text x="32" y="292" class="box-desc">5-Tab Control Center, MaterialTable, MaterialGridList, Dialogs</text>
+
+    <!-- Sub-component 5: Self-Contained Local Storage -->
+    <rect x="20" y="320" width="340" height="52" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+    <text x="32" y="340" class="box-title">Packaged Storage &amp; Base64 Delivery</text>
+    <text x="32" y="356" class="box-desc">app/data/reports.json (19 issues) + Base64 Sketches (&lt;8KB)</text>
+  </g>
+
+  <!-- ================= 3. GOOGLE CLOUD VERTEX AI ================= -->
+  <g transform="translate(720, 40)">
+    <rect width="210" height="380" rx="12" fill="#ffffff" stroke="#cbd5e1" stroke-width="1.5" filter="url(#shadow)"/>
+    <rect x="0" y="0" width="210" height="40" rx="12" fill="#fef3c7"/>
+    <path d="M 0 28 Q 0 40 12 40 L 198 40 Q 210 40 210 28 L 210 40 L 0 40 Z" fill="#fef3c7"/>
+    <text x="16" y="26" class="title" fill="#b45309">Google Cloud</text>
+
+    <!-- Vertex AI Gemini 3.8 Flash -->
+    <rect x="15" y="60" width="180" height="135" rx="8" fill="#f8fafc" stroke="#fcd34d"/>
+    <rect x="25" y="72" width="70" height="18" rx="4" fill="#f59e0b"/>
+    <text x="31" y="85" class="tag">PRIMARY</text>
+    <text x="25" y="114" class="box-title">Gemini 3.8 Flash</text>
+    <text x="25" y="136" class="box-desc">Vertex AI Reasoning,</text>
+    <text x="25" y="154" class="box-desc">Tool Calling &amp; Schema</text>
+    <text x="25" y="172" class="box-desc">Wire Serialization</text>
+
+    <!-- Vertex AI Image Model -->
+    <rect x="15" y="215" width="180" height="135" rx="8" fill="#f8fafc" stroke="#cbd5e1"/>
+    <rect x="25" y="227" width="82" height="18" rx="4" fill="#64748b"/>
+    <text x="31" y="240" class="tag">IMAGE GEN</text>
+    <text x="25" y="269" class="box-title">Gemini 3.1 Flash</text>
+    <text x="25" y="291" class="box-desc">Incident sketch generation</text>
+    <text x="25" y="309" class="box-desc">Multi-modal vision checks</text>
+    <text x="25" y="327" class="box-desc">w/ bundled sketch fallback</text>
+  </g>
+
+  <!-- ================= CONNECTORS / ARROWS ================= -->
+  <!-- Client to Cloud Run -->
+  <path d="M 240 180 L 290 180" class="flow-arrow" marker-end="url(#arrow-blue)"/>
+  <path d="M 290 220 L 240 220" class="flow-arrow" marker-end="url(#arrow-blue)"/>
+  <rect x="245" y="146" width="40" height="18" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="250" y="159" font-family="sans-serif" font-size="9px" font-weight="700" fill="#2563eb">A2A</text>
+  <rect x="242" y="228" width="46" height="18" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="246" y="241" font-family="sans-serif" font-size="9px" font-weight="700" fill="#16a34a">A2UI</text>
+
+  <!-- Cloud Run to Vertex AI -->
+  <path d="M 670 120 L 720 120" class="flow-arrow" marker-end="url(#arrow-blue)"/>
+  <path d="M 720 150 L 670 150" class="flow-arrow" marker-end="url(#arrow-blue)"/>
+  <rect x="675" y="96" width="40" height="18" rx="4" fill="#ffffff" stroke="#cbd5e1"/>
+  <text x="680" y="109" font-family="sans-serif" font-size="9px" font-weight="700" fill="#2563eb">SDK</text>
+</svg>

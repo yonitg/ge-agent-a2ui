@@ -1,0 +1,120 @@
+[
+  {
+    "version": "v0.9",
+    "createSurface": {
+      "surfaceId": "vega-chart-demo",
+      "catalogId": "https://www.gstatic.com/vertexaisearch/a2ui/v0_9/gemini_enterprise_composite_catalog.json",
+      "theme": {
+        "primaryColor": "#1a73e8",
+        "font": "Roboto"
+      }
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateComponents": {
+      "surfaceId": "vega-chart-demo",
+      "components": [
+        {
+          "id": "root",
+          "component": "MaterialCard",
+          "children": ["main-column"]
+        },
+        {
+          "id": "main-column",
+          "component": "MaterialColumn",
+          "align": "stretch",
+          "children": ["header-row", "subtitle", "chart", "footer-row"]
+        },
+        {
+          "id": "header-row",
+          "component": "MaterialRow",
+          "justify": "spaceBetween",
+          "align": "center",
+          "children": ["title", "trend-icon"]
+        },
+        {
+          "id": "title",
+          "component": "MaterialText",
+          "text": "Weekly Active Users",
+          "usageHint": "h2"
+        },
+        {
+          "id": "trend-icon",
+          "component": "MaterialIcon",
+          "icon": "trending_up",
+          "color": "primary"
+        },
+        {
+          "id": "subtitle",
+          "component": "MaterialText",
+          "text": "Trailing 8 weeks, by platform",
+          "usageHint": "caption"
+        },
+        {
+          "id": "chart",
+          "component": "VegaChart",
+          "height": 320,
+          "spec": { "path": "/vegaSpec" }
+        },
+        {
+          "id": "footer-row",
+          "component": "MaterialRow",
+          "justify": "end",
+          "children": ["refresh-button"]
+        },
+        {
+          "id": "refresh-button",
+          "component": "MaterialButton",
+          "label": "Refresh",
+          "leadingIcon": "refresh",
+          "action": {
+            "event": {
+              "name": "refresh_vega_chart_demo",
+              "context": {
+                "prompt": "Refresh the weekly active users chart with the latest data"
+              }
+            }
+          }
+        }
+      ]
+    }
+  },
+  {
+    "version": "v0.9",
+    "updateDataModel": {
+      "surfaceId": "vega-chart-demo",
+      "path": "/vegaSpec",
+      "value": {
+        "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+        "description": "Weekly active users over the trailing 8 weeks, split by platform.",
+        "data": {
+          "values": [
+            { "week": "Wk 1", "platform": "Web", "users": 820 },
+            { "week": "Wk 1", "platform": "Mobile", "users": 640 },
+            { "week": "Wk 2", "platform": "Web", "users": 932 },
+            { "week": "Wk 2", "platform": "Mobile", "users": 705 },
+            { "week": "Wk 3", "platform": "Web", "users": 901 },
+            { "week": "Wk 3", "platform": "Mobile", "users": 780 },
+            { "week": "Wk 4", "platform": "Web", "users": 1034 },
+            { "week": "Wk 4", "platform": "Mobile", "users": 860 },
+            { "week": "Wk 5", "platform": "Web", "users": 1120 },
+            { "week": "Wk 5", "platform": "Mobile", "users": 910 },
+            { "week": "Wk 6", "platform": "Web", "users": 1085 },
+            { "week": "Wk 6", "platform": "Mobile", "users": 960 },
+            { "week": "Wk 7", "platform": "Web", "users": 1210 },
+            { "week": "Wk 7", "platform": "Mobile", "users": 1040 },
+            { "week": "Wk 8", "platform": "Web", "users": 1305 },
+            { "week": "Wk 8", "platform": "Mobile", "users": 1150 }
+          ]
+        },
+        "mark": { "type": "line", "point": true },
+        "encoding": {
+          "x": { "field": "week", "type": "ordinal", "title": "Week" },
+          "y": { "field": "users", "type": "quantitative", "title": "Active Users" },
+          "color": { "field": "platform", "type": "nominal", "title": "Platform" }
+        }
+      }
+    }
+  }
+]
