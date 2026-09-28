@@ -22,10 +22,18 @@ defaults:
 
 jobs:
   review:
+    # This repository is public. Each run uses the PR-noia secrets and a
+    # paid scan, so the job only runs for:
+    #   - pull requests opened from a branch of this repository (fork PRs are
+    #     skipped; GitHub does not pass secrets to them anyway),
+    #   - manual runs (workflow_dispatch needs write access), and
+    #   - `/review` comments from the owner, members or collaborators.
     if: |
-      github.event_name == 'pull_request' ||
+      (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) ||
       github.event_name == 'workflow_dispatch' ||
-      (github.event_name == 'issue_comment' && github.event.issue.pull_request && contains(github.event.comment.body, '/review'))
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request &&
+        contains(github.event.comment.body, '/review') &&
+        contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association))
     runs-on: 'ubuntu-latest'
     timeout-minutes: 20
     permissions:
@@ -34,6 +42,10 @@ jobs:
       pull-requests: 'write'
 
     steps:
+      # On issue_comment and workflow_dispatch this checks out the default
+      # branch, not the pull request. Keep it that way: the steps below run
+      # .github/scripts with the secrets, so they must never come from the PR
+      # head. The PR itself is only read as data (gh pr view / gh pr diff).
       - name: 'Checkout repository'
         uses: 'actions/checkout@v4'
         with:
@@ -87,7 +99,7 @@ jobs:
 
       - name: 'Submit scan and wait for the review'
         env:
-          PRNOIA_SERVER_URL: '${{ vars.PRNOIA_SERVER_URL }}'
+          PRNOIA_SERVER_URL: '${{ secrets.PRNOIA_SERVER_URL }}'
           PRNOIA_API_KEY: '${{ secrets.PRNOIA_API_KEY }}'
           GITHUB_REPOSITORY: '${{ github.repository }}'
         run: |-

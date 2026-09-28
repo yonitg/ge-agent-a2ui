@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Operations Control Center: native A2UI v0.9 cards in Gemini Enterprise · One-pager</title>
+  <meta name="description" content="One-page overview of a reference Google ADK agent that answers in Gemini Enterprise with native, interactive A2UI v0.9 cards from a private Cloud Run service: problem, design choices, request flow and code map.">
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Operations Control Center: native A2UI v0.9 cards in Gemini Enterprise">
+  <meta property="og:description" content="A reference ADK agent that renders tables, a sketch gallery, charts and forms natively in Gemini Enterprise, served from one private Cloud Run service.">
+  <meta property="og:url" content="https://yonitg.github.io/ge-agent-a2ui/">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="canonical" href="https://yonitg.github.io/ge-agent-a2ui/">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap">
+  <style>
+    :root {
+      --ink: #0f172a;
+      --ink-2: #334155;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --line-2: #cbd5e1;
+      --bg: #eef2f6;
+      --paper: #ffffff;
+      --wash: #f8fafc;
+      --blue: #1d4ed8;
+      --blue-soft: #eff6ff;
+      --emerald: #047857;
+      --emerald-soft: #ecfdf5;
+      --amber: #b45309;
+      --amber-soft: #fffbeb;
+      --rose: #be123c;
+      --rose-soft: #fff1f2;
+      --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    * { box-sizing: border-box; }
+    html { -webkit-text-size-adjust: 100%; }
+    body {
+      margin: 0;
+      padding: 40px 20px;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.6 var(--sans);
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    a:focus-visible, button:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 6px; }
+    code {
+      font-family: var(--mono);
+      font-size: 0.84em;
+      color: var(--ink-2);
+      background: #f1f5f9;
+      border: 1px solid var(--line);
+      border-radius: 5px;
+      padding: 0.05em 0.35em;
+      white-space: nowrap;
+    }
+
+    .sheet {
+      max-width: 1060px;
+      margin: 0 auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 16px 48px rgba(15, 23, 42, 0.07);
+      padding: 34px 44px 30px;
+    }
+
+    /* Top bar */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 18px;
+      border-bottom: 1px solid var(--line);
+    }
+    .doc-label {
+      font: 600 11px/1.5 var(--mono);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 9px 14px;
+      border: 1px solid var(--line-2);
+      border-radius: 9px;
+      background: #fff;
+      color: var(--ink);
+      font: 600 13px/1 var(--sans);
+      cursor: pointer;
+      transition: background-color 0.15s ease, border-color 0.15s ease;
+    }
+    .btn:hover { background: var(--wash); border-color: #94a3b8; text-decoration: none; }
+    .btn-dark { background: var(--ink); border-color: var(--ink); color: #fff; }
+    .btn-dark:hover { background: #1e293b; border-color: #1e293b; }
+
+    /* Header */
+    .hero { padding: 30px 0 20px; }
+    .eyebrow {
+      margin: 0 0 10px;
+      font: 600 12px/1.4 var(--mono);
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--blue);
+    }
+    h1 {
+      margin: 0 0 12px;
+      font-size: 40px;
+      line-height: 1.08;
+      font-weight: 800;
+      letter-spacing: -0.028em;
+    }
+    .subtitle { margin: 0; max-width: 800px; font-size: 17px; color: var(--ink-2); }
+
+    /* Summary and numbers */
+    .tldr {
+      margin: 4px 0 20px;
+      padding: 18px 22px;
+      border-radius: 14px;
+      background: var(--blue-soft);
+    }
+    .kicker {
+      margin: 0 0 6px;
+      font: 700 11px/1.4 var(--mono);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--blue);
+    }
+    .tldr p { margin: 0; color: #1e293b; }
+
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 0 0 36px;
+    }
+    .metric { padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; }
+    .metric-value { font: 600 26px/1.15 var(--mono); letter-spacing: -0.02em; }
+    .metric-value.blue { color: var(--blue); }
+    .metric-value.green { color: var(--emerald); }
+    .metric-label { margin-top: 6px; font-size: 13px; line-height: 1.45; color: var(--muted); }
+
+    /* Sections */
+    section { margin-bottom: 36px; }
+    h2 {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      margin: 0 0 14px;
+      font-size: 20px;
+      letter-spacing: -0.01em;
+    }
+    .num { font: 600 12px/1 var(--mono); letter-spacing: 0.06em; color: var(--muted); }
+    h3 { margin: 0 0 3px; font-size: 15px; line-height: 1.35; }
+
+    .two-col { display: grid; grid-template-columns: 5fr 7fr; gap: 40px; }
+
+    .box { margin-bottom: 10px; padding: 14px 16px; border-radius: 12px; }
+    .box p { margin: 0; font-size: 14px; color: var(--ink-2); }
+    .tag {
+      display: block;
+      margin-bottom: 6px;
+      font: 700 10.5px/1 var(--mono);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+    .trap-a { background: var(--amber-soft); }
+    .trap-a .tag { color: var(--amber); }
+    .trap-b { background: var(--rose-soft); }
+    .trap-b .tag { color: var(--rose); }
+    .way { background: var(--emerald-soft); }
+    .way .tag { color: var(--emerald); }
+
+    .choices { margin: 0; padding: 0; list-style: none; counter-reset: choice; }
+    .choices li {
+      display: grid;
+      grid-template-columns: 30px 1fr;
+      gap: 12px;
+      padding: 12px 0;
+      border-top: 1px solid var(--line);
+    }
+    .choices li:first-child { padding-top: 2px; border-top: 0; }
+    .choices li::before {
+      counter-increment: choice;
+      content: counter(choice, decimal-leading-zero);
+      font: 700 12px/1.9 var(--mono);
+      color: var(--emerald);
+    }
+    .choices p { margin: 0; font-size: 14px; color: var(--ink-2); }
+    .files { margin-top: 5px; font: 500 11.5px/1.4 var(--mono); color: var(--muted); }
+
+    /* Flow */
+    .diagram { margin: 0 0 14px; }
+    .diagram a { display: block; }
+    .diagram img { display: block; width: 100%; height: auto; }
+    .diagram figcaption { margin-top: 8px; font-size: 12.5px; color: var(--muted); text-align: center; }
+    .flow {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px 14px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      counter-reset: step;
+    }
+    .flow li {
+      position: relative;
+      padding: 12px 14px 12px 46px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      font-size: 14px;
+      color: var(--ink-2);
+    }
+    .flow li::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      top: 13px;
+      left: 14px;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--ink);
+      color: #fff;
+      font: 700 11px/22px var(--mono);
+      text-align: center;
+    }
+    .flow strong { display: block; margin-bottom: 2px; color: var(--ink); }
+
+    /* Code map */
+    .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    th, td { padding: 10px 14px; border-top: 1px solid var(--line); text-align: left; vertical-align: top; }
+    thead th {
+      border-top: 0;
+      background: var(--wash);
+      font: 600 11px/1.4 var(--mono);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    td:first-child { font-weight: 600; white-space: nowrap; }
+    td a { font: 500 13px/1.5 var(--mono); white-space: nowrap; }
+    td:last-child { color: var(--ink-2); }
+
+    /* Try it */
+    .try { display: grid; grid-template-columns: 3fr 2fr; gap: 16px; align-items: start; }
+    pre {
+      margin: 0;
+      padding: 16px 18px;
+      overflow-x: auto;
+      border-radius: 12px;
+      background: var(--ink);
+      color: #e2e8f0;
+      font: 500 13px/1.75 var(--mono);
+    }
+    pre code { padding: 0; border: 0; background: none; color: inherit; font-size: inherit; white-space: pre; }
+    .cmt { color: #94a3b8; }
+    .prompts { padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; }
+    .prompts h3 { margin-bottom: 8px; font-size: 14px; }
+    .prompts ul { margin: 0; padding-left: 18px; font-size: 14px; color: var(--ink-2); }
+    .prompts li { margin: 4px 0; }
+
+    /* Footer */
+    footer { margin-top: 4px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+    .foot-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; margin-bottom: 10px; }
+    .foot-top strong { color: var(--ink); }
+    .foot-links { display: flex; flex-wrap: wrap; gap: 4px 16px; }
+    .disclaimer { margin: 0; font-size: 12px; line-height: 1.55; }
+
+    @media (max-width: 860px) {
+      body { padding: 16px 10px; }
+      .sheet { padding: 22px 20px; border-radius: 14px; }
+      .topbar { flex-direction: column; align-items: flex-start; }
+      h1 { font-size: 30px; }
+      .subtitle { font-size: 16px; }
+      .metrics { grid-template-columns: repeat(2, 1fr); }
+      .two-col, .try { grid-template-columns: 1fr; gap: 0; }
+      .flow { grid-template-columns: 1fr; }
+      code { white-space: normal; }
+      .table-wrap { overflow-x: visible; }
+      thead { display: none; }
+      table, tbody, tr, td { display: block; width: 100%; }
+      tr { padding: 11px 14px; border-top: 1px solid var(--line); }
+      tbody tr:first-child { border-top: 0; }
+      td { padding: 0; border-top: 0; }
+      td a { white-space: normal; word-break: break-all; }
+      td:last-child { margin-top: 3px; }
+    }
+    @media (max-width: 420px) {
+      .metrics { grid-template-columns: 1fr; }
+    }
+
+    @page { size: A4; margin: 12mm; }
+    @media print {
+      body { padding: 0; background: #fff; font-size: 11.5px; }
+      .no-print { display: none !important; }
+      .sheet { max-width: none; padding: 0; border: 0; border-radius: 0; box-shadow: none; }
+      a { color: inherit; }
+      h1 { font-size: 30px; }
+      section, .box, .metric, .flow li, tr, .choices li { break-inside: avoid; }
+      pre { background: #f1f5f9; color: var(--ink); white-space: pre-wrap; }
+      .cmt { color: var(--muted); }
+      .tldr, .box, .diagram, thead th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <main class="sheet">
+    <div class="topbar">
+      <span class="doc-label">System architecture one-pager · Gemini Enterprise · A2UI v0.9</span>
+      <nav class="actions no-print" aria-label="Page actions">
+        <a class="btn btn-dark" id="repo-link" href="https://github.com/yonitg/ge-agent-a2ui">GitHub repository <span aria-hidden="true">↗</span></a>
+        <button class="btn" id="print-btn" type="button">Print / Save PDF</button>
+      </nav>
+    </div>
+
+    <header class="hero">
+      <p class="eyebrow">Reference agent · Google ADK · A2A · Cloud Run</p>
+      <h1>Operations Control Center</h1>
+      <p class="subtitle">An ADK agent that answers in Gemini Enterprise with native, interactive A2UI v0.9 cards (tables, a sketch gallery, charts and forms), served from one private Cloud Run service.</p>
+    </header>
+
+    <section class="tldr" aria-labelledby="tldr-title">
+      <h2 class="kicker" id="tldr-title">Executive summary</h2>
+      <p>Enterprise agents usually answer in text, or send people to a separate web app. This agent returns A2UI v0.9 JSON instead, and Gemini Enterprise draws it with its own Material 3 components, right in the chat. A five-tab operations card, a dialog, a menu and a dispatch form all update in place. Everything, including the images, ships in one private Cloud Run service, and one script deploys it and registers it with Gemini Enterprise.</p>
+    </section>
+
+    <section class="metrics" aria-label="Key numbers">
+      <div class="metric">
+        <div class="metric-value blue">v0.9</div>
+        <div class="metric-label">A2UI protocol, rendered natively by Gemini Enterprise</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value">5 tabs</div>
+        <div class="metric-label">in one card: KPIs, incidents, gallery, analytics, dispatch</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value green">0 buckets</div>
+        <div class="metric-label">sketches, banner and icon ship inside the container</div>
+      </div>
+      <div class="metric">
+        <div class="metric-value">1 command</div>
+        <div class="metric-label">deploys privately and registers the agent</div>
+      </div>
+    </section>
+
+    <div class="two-col">
+      <section aria-labelledby="problem-title">
+        <h2 id="problem-title"><span class="num">01</span> The problem</h2>
+        <div class="box trap-a">
+          <span class="tag">Trap A · Text-only answers</span>
+          <p>Incident lists turn into pages of markdown, a service request turns into twenty questions, and trends are reduced to numbers in a sentence.</p>
+        </div>
+        <div class="box trap-b">
+          <span class="tag">Trap B · A separate web front end</span>
+          <p>An iframe or linked web app needs its own hosting, sign-in, CORS rules and often a public image bucket, and it takes the user out of the conversation.</p>
+        </div>
+        <div class="box way">
+          <span class="tag">The A2UI way</span>
+          <p>The agent sends declarative JSON and the client renders it with its own trusted components. No HTML or script crosses the wire, and the user never leaves the chat.</p>
+        </div>
+      </section>
+
+      <section aria-labelledby="choices-title">
+        <h2 id="choices-title"><span class="num">02</span> Six design choices</h2>
+        <ol class="choices">
+          <li>
+            <div>
+              <h3>Native A2UI v0.9 messages</h3>
+              <p><code>createSurface</code>, <code>updateComponents</code> and <code>updateDataModel</code> against the Gemini Enterprise composite catalog. The client draws its own Material 3 components.</p>
+              <div class="files">app/render_tools.py</div>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h3>One card, updated in place</h3>
+              <p>Dialog, menu and form choices go back to the agent, which answers with <code>updateDataModel</code> for the same surface instead of posting a new card.</p>
+              <div class="files">app/agent_executor.py · app/render_tools.py</div>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h3>Private by default</h3>
+              <p>Cloud Run with <code>--no-allow-unauthenticated</code>. Only the Gemini Enterprise service agent gets <code>roles/run.invoker</code>, and the service runs as a dedicated account with only <code>roles/aiplatform.user</code>.</p>
+              <div class="files">deploy.sh</div>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h3>No public assets</h3>
+              <p>The 19 seed sketches, the banner and the icon ship in the container and go out as base64 data URIs (320&nbsp;px JPEG thumbnails). No bucket, CDN or CORS rules.</p>
+              <div class="files">app/report_tools.py</div>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h3>Small prompts, valid payloads</h3>
+              <p>Cards the user already has are replaced with a one-line note before each model call. A hardened parser and the executor repair combined or malformed A2UI messages before they reach the client.</p>
+              <div class="files">app/agent.py · app/app_utils/a2ui_payload_patch.py</div>
+            </div>
+          </li>
+          <li>
+            <div>
+              <h3>Cost guardrails</h3>
+              <p>One instance by default, length-limited fields, identical reports within two minutes deduplicated, and a bundled sketch when image generation is unavailable.</p>
+              <div class="files">deploy.sh · app/render_tools.py · app/report_tools.py</div>
+            </div>
+          </li>
+        </ol>
+      </section>
+    </div>
+
+    <section aria-labelledby="flow-title">
+      <h2 id="flow-title"><span class="num">03</span> How a request flows</h2>
+      <figure class="diagram">
+        <a id="diagram-link" href="architecture.svg" title="Open the full-size diagram"><img src="architecture.svg" width="960" height="460" alt="Architecture: Gemini Enterprise calls the agent over A2A on a private Cloud Run service. The ADK agent uses Gemini on Vertex AI for reasoning and sketch generation and returns A2UI v0.9 JSON, which Gemini Enterprise renders natively."></a>
+        <figcaption>Gemini Enterprise ⇄ A2A ⇄ private Cloud Run agent (ADK) ⇄ Gemini on Vertex AI</figcaption>
+      </figure>
+      <ol class="flow">
+        <li><strong>Ask</strong>A user types in Gemini Enterprise, for example “Show me the operations control center”.</li>
+        <li><strong>Call</strong>Gemini Enterprise calls the registered A2A agent with its service agent's ID token. Cloud Run IAM checks the invoker role.</li>
+        <li><strong>Reason</strong>The ADK agent (Gemini 3.8 Flash on Vertex AI) picks a skill: <code>manage_operations</code> or <code>file_report</code>.</li>
+        <li><strong>Build</strong>Tools build the A2UI messages. The executor splits and repairs them and returns them over A2A with the A2UI v0.9 extension.</li>
+        <li><strong>Render</strong>Gemini Enterprise draws the card natively. Clicks, chips, sliders and form submits come back as events, and the agent updates the same card.</li>
+        <li><strong>Sketch</strong>A new report gets an inspection sketch from the Gemini image model, or a bundled one if generation is unavailable.</li>
+      </ol>
+    </section>
+
+    <section aria-labelledby="map-title">
+      <h2 id="map-title"><span class="num">04</span> Component and codebase map</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th scope="col">Component</th><th scope="col">Source</th><th scope="col">What it does</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>A2A server</td>
+              <td><a id="code-main" href="https://github.com/yonitg/ge-agent-a2ui/blob/main/app/main.py">app/main.py</a></td>
+              <td>Starlette app: A2A endpoint, agent card, <code>/health</code>, <code>/feedback</code>, optional ID-token middleware.</td>
+            </tr>
+            <tr>
+              <td>Agent</td>
+              <td><a id="code-agent" href="https://github.com/yonitg/ge-agent-a2ui/blob/main/app/agent.py">app/agent.py</a></td>
+              <td>ADK <code>LlmAgent</code>: instructions, tools and the callback that trims cards already shown.</td>
+            </tr>
+            <tr>
+              <td>Executor</td>
+              <td><a id="code-executor" href="https://github.com/yonitg/ge-agent-a2ui/blob/main/app/agent_executor.py">app/agent_executor.py</a></td>
+              <td>A2A executor: splits combined A2UI parts, repairs catalog IDs and converts client events.</td>
+            </tr>
+            <tr>
+              <td>Surfaces</td>
+              <td><a id="code-render" href="https://github.com/yonitg/ge-agent-a2ui/blob/main/app/render_tools.py">app/render_tools.py</a></td>
+              <td>The five-tab dashboard, dialog, menu, dispatch form and the <code>file_report</code> tool.</td>
+            </tr>
+            <tr>
+              <td>Reports and sketches</td>
+              <td><a id="code-reports" href="https://github.com/yonitg/ge-agent-a2ui/blob/main/app/report_tools.py">app/report_tools.py</a></td>
+              <td>Demo report store, sketch generation with fallback, and thumbnails as data URIs.</td>
+            </tr>
+            <tr>
+              <td>Payload repair</td>
+              <td><a id="code-patch" href="https://github.com/yonitg/ge-agent-a2ui/blob/main/app/app_utils/a2ui_payload_patch.py">app/app_utils/a2ui_payload_patch.py</a></td>
+              <td>Hardened parser that merges concatenated A2UI messages and restores dropped commas.</td>
+            </tr>
+            <tr>
+              <td>Optional auth</td>
+              <td><a id="code-auth" href="https://github.com/yonitg/ge-agent-a2ui/blob/main/app/auth_middleware.py">app/auth_middleware.py</a></td>
+              <td>ID-token check for hosting outside Cloud Run (off by default).</td>
+            </tr>
+            <tr>
+              <td>Deploy</td>
+              <td><a id="code-deploy" href="https://github.com/yonitg/ge-agent-a2ui/blob/main/deploy.sh">deploy.sh</a></td>
+              <td>Preflight, APIs, runtime service account, private deploy, invoker grant, smoke test, registration.</td>
+            </tr>
+            <tr>
+              <td>Registration</td>
+              <td><a id="code-register" href="https://github.com/yonitg/ge-agent-a2ui/blob/main/register_gemini_enterprise.py">register_gemini_enterprise.py</a></td>
+              <td>Registers, updates or deletes the agent in a Gemini Enterprise app (HTTPS only).</td>
+            </tr>
+            <tr>
+              <td>Tests</td>
+              <td><a id="code-tests" href="https://github.com/yonitg/ge-agent-a2ui/tree/main/tests/unit">tests/unit/</a></td>
+              <td>71 unit tests: surfaces, filters, dedup, form limits, dialog and menu, prompt size, auth and registration.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="try-title">
+      <h2 id="try-title"><span class="num">05</span> Try it</h2>
+      <div class="try">
+        <pre><code>git clone https://github.com/yonitg/ge-agent-a2ui.git
+cd ge-agent-a2ui
+<span class="cmt"># optional: register in your Gemini Enterprise app</span>
+export GEMINI_ENTERPRISE_ENGINE_ID=&lt;your-app-id&gt;
+./deploy.sh &lt;PROJECT_ID&gt;</code></pre>
+        <div class="prompts">
+          <h3>Then ask Gemini Enterprise</h3>
+          <ul>
+            <li>“Show me the operations control center”</li>
+            <li>“List active building incidents”</li>
+            <li>“Show the visual sketch gallery”</li>
+            <li>“Report a broken chair in the Yellow Room”</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <footer>
+      <div class="foot-top">
+        <span><strong>Operations Control Center</strong> · A2UI v0.9 reference agent · by <a id="author-link" href="https://github.com/yonitg">Yonit</a></span>
+        <span class="foot-links">
+          <a id="foot-repo" href="https://github.com/yonitg/ge-agent-a2ui">Repository</a>
+          <a id="foot-readme" href="https://github.com/yonitg/ge-agent-a2ui#readme">README</a>
+          <a id="foot-license" href="https://github.com/yonitg/ge-agent-a2ui/blob/main/LICENSE">Apache 2.0 license</a>
+        </span>
+      </div>
+      <p class="disclaimer">This code is provided "as-is" as a demonstration only to illustrate a potential solution. The code does not constitute a Google product or service of any kind, and Google offers no support, warranties, or liability of any kind with its regard. Whoever chooses to use this code accepts all responsibility related to it, including for its implementation, use, and ongoing maintenance. For the avoidance of doubt, this code is not eligible for the Google Open Source Software Vulnerability Rewards Program.</p>
+    </footer>
+  </main>
+
+  <script>
+    document.getElementById("print-btn").addEventListener("click", function () {
+      window.print();
+    });
+  </script>
+</body>
+</html>

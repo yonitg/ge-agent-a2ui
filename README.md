@@ -1,13 +1,15 @@
 # A2UI v0.9 ADK Reference Agent: Operations Control Center
 
 [![A2UI Spec](https://img.shields.io/badge/A2UI-v0.9%20Native-blue.svg)](https://a2ui.org)
-[![Google ADK](https://img.shields.io/badge/Framework-Google%20ADK-green.svg)](https://github.com/google/agent-development-kit)
+[![Google ADK](https://img.shields.io/badge/Framework-Google%20ADK-green.svg)](https://github.com/google/adk-python)
 [![Model](https://img.shields.io/badge/Model-Gemini%203.8%20Flash-orange.svg)](https://cloud.google.com/vertex-ai)
 [![Cloud Run](https://img.shields.io/badge/Deployment-Google%20Cloud%20Run-4285F4.svg)](https://cloud.google.com/run)
 
 A standalone reference implementation of an **Agent-to-User Interface (A2UI v0.9)** enterprise agent built with the **Google Agent Development Kit (ADK)** and serving over the **Agent-to-Agent (A2A)** protocol.
 
 Designed to showcase rich, responsive, native client-rendered surfaces on **Google Gemini Enterprise** and modern A2A clients **without external cloud storage dependencies**.
+
+📄 **One-pager:** [yonitg.github.io/ge-agent-a2ui](https://yonitg.github.io/ge-agent-a2ui/) (architecture, design choices and code map on one page).
 
 ---
 
@@ -60,10 +62,10 @@ Google **Gemini Enterprise** incorporates a native client-side A2UI rendering en
 ### Official A2UI Documentation & Specifications
 
 * **Official Website**: [https://a2ui.org](https://a2ui.org)
-* **A2UI v0.9 Specification**: [https://a2ui.org/specification/v0_9/](https://a2ui.org/specification/v0_9/)
-* **Material 3 Component Catalog**: [https://a2ui.org/specification/v0_9/catalogs/material/](https://a2ui.org/specification/v0_9/catalogs/material/)
+* **A2UI v0.9 Specification**: [https://a2ui.org/specification/v0.9-a2ui/](https://a2ui.org/specification/v0.9-a2ui/)
+* **Component Catalogs**: [https://a2ui.org/concepts/catalogs/](https://a2ui.org/concepts/catalogs/)
 * **Composite Catalog Definition**: [`gemini_enterprise_composite_catalog.json`](https://www.gstatic.com/vertexaisearch/a2ui/v0_9/gemini_enterprise_composite_catalog.json)
-* **Google Agent Development Kit (ADK)**: [https://github.com/google/agent-development-kit](https://github.com/google/agent-development-kit)
+* **Google Agent Development Kit (ADK)**: [https://github.com/google/adk-python](https://github.com/google/adk-python)
 
 ---
 
@@ -277,7 +279,9 @@ This is a demo. Before you adapt it:
 ├── pyproject.toml                           # Dependencies and project metadata
 ├── uv.lock                                  # Locked dependency tree
 ├── gemini_enterprise_composite_catalog.json # Official A2UI v0.9 composite catalog
-├── docs/architecture.svg                    # Architecture diagram
+├── docs/
+│   ├── architecture.svg                     # Architecture diagram
+│   └── index.html                           # One-pager (GitHub Pages)
 ├── app/
 │   ├── agent.py                             # ADK LlmAgent definition, prompts, & tools
 │   ├── agent_executor.py                    # A2A request handler & A2UI converter
