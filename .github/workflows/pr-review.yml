@@ -47,7 +47,7 @@ jobs:
       # .github/scripts with the secrets, so they must never come from the PR
       # head. The PR itself is only read as data (gh pr view / gh pr diff).
       - name: 'Checkout repository'
-        uses: 'actions/checkout@v4'
+        uses: 'actions/checkout@11d5960a326750d5838078e36cf38b85af677262' # v4.4.0
         with:
           fetch-depth: 0
           persist-credentials: 'false'
@@ -61,7 +61,7 @@ jobs:
           gh issue comment "$PR_NUMBER" --repo "$REPO" --body "🔎 **PR-noia** is analyzing this pull request for security issues. A summary will be posted here when the review completes. Comment \`/review\` any time to re-run."
 
       - name: 'Set up Python'
-        uses: 'actions/setup-python@v4'
+        uses: 'actions/setup-python@7f4fc3e22c37d6ff65e88745f38bd3157c663f7c' # v4.9.1
         with:
           python-version: '3.11'
 
