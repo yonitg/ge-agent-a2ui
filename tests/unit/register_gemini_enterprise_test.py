@@ -3,7 +3,9 @@
 import base64
 import io
 import json
+import sys
 import urllib.error
+import urllib.request
 from unittest.mock import MagicMock
 
 import pytest
@@ -39,11 +41,11 @@ def test_agent_card_fetch_sends_identity_token_to_cloud_run_only(monkeypatch):
     monkeypatch.setattr(reg, "get_identity_token", lambda: "id-token-123")
     sent = []
 
-    def fake_urlopen(req, timeout):
+    def fake_open(req, timeout):
         sent.append(req)
         return _fake_response({"name": "card"})
 
-    monkeypatch.setattr(reg.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(reg._HTTPS_OPENER, "open", fake_open)
 
     assert reg.get_agent_card("https://svc-abc-uc.a.run.app/") == {"name": "card"}
     reg.get_agent_card("https://agent.example.com")
@@ -56,14 +58,68 @@ def test_agent_card_fetch_sends_identity_token_to_cloud_run_only(monkeypatch):
 def test_agent_card_fetch_explains_a_forbidden_private_service(monkeypatch, capsys):
     monkeypatch.setattr(reg, "get_identity_token", lambda: None)
 
-    def fake_urlopen(req, timeout):
+    def fake_open(req, timeout):
         raise urllib.error.HTTPError(req.full_url, 403, "Forbidden", {}, io.BytesIO(b""))
 
-    monkeypatch.setattr(reg.urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(reg._HTTPS_OPENER, "open", fake_open)
 
     with pytest.raises(SystemExit):
         reg.get_agent_card("https://svc-abc-uc.a.run.app")
     assert "roles/run.invoker" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("url", ["file:///etc/passwd", "http://svc-abc-uc.a.run.app/"])
+def test_requests_only_go_over_https(url):
+    """Unlike urlopen, the opener has no file:// or plain-http handler."""
+    with pytest.raises(urllib.error.URLError, match="unknown url type"):
+        reg._HTTPS_OPENER.open(url, timeout=5)
+
+
+def test_requests_do_not_follow_redirects():
+    """A followed redirect would carry the Authorization header to another host."""
+    handler_types = {type(handler) for handler in reg._HTTPS_OPENER.handlers}
+    assert urllib.request.HTTPRedirectHandler not in handler_types
+
+
+@pytest.mark.parametrize(
+    ("location", "endpoint"),
+    [
+        ("global", "https://discoveryengine.googleapis.com"),
+        ("eu", "https://eu-discoveryengine.googleapis.com"),
+        ("us", "https://us-discoveryengine.googleapis.com"),
+    ],
+)
+def test_api_endpoint(location, endpoint):
+    assert reg.get_api_endpoint(location) == endpoint
+
+
+@pytest.mark.parametrize(
+    "location", ["attacker.example/x?", "attacker.example#", "attacker.example:443/"]
+)
+def test_api_endpoint_rejects_a_location_that_changes_the_host(location):
+    """The gcloud access token must only ever go to the Discovery Engine API."""
+    with pytest.raises(ValueError, match="invalid Gemini Enterprise location"):
+        reg.get_api_endpoint(location)
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["--service-url", "file:///etc/passwd"],
+        ["--service-url", "http://svc-abc-uc.a.run.app"],
+        ["--service-url", "https://svc-abc-uc.a.run.app", "--location", "attacker.example/x?"],
+    ],
+)
+def test_cli_rejects_unsafe_urls_before_fetching_a_token(monkeypatch, capsys, args):
+    monkeypatch.setattr(reg, "get_gcloud_token", MagicMock(side_effect=AssertionError))
+    argv = ["register_gemini_enterprise.py", "--project", "p", "--engine", "e", *args]
+    monkeypatch.setattr(sys, "argv", argv)
+
+    with pytest.raises(SystemExit) as exc:
+        reg.main()
+
+    assert exc.value.code == 2
+    assert "invalid" in capsys.readouterr().err
 
 
 def test_build_icon_prefers_explicit_url():

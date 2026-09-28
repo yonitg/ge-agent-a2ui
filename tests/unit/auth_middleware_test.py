@@ -1,7 +1,9 @@
 """Unit tests for GoogleIAMAuthMiddleware."""
 
+import logging
 from unittest.mock import patch
 
+from google.auth.transport import requests as google_requests
 from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.responses import JSONResponse
@@ -130,3 +132,41 @@ def test_verification_error_details_are_not_returned(mock_verify):
 
     assert res.status_code == 401
     assert res.json() == {"error": "Unauthorized: Google ID token verification failed"}
+
+
+class _EmptyCertsResponse:
+    status = 200
+    data = b"{}"
+
+
+def test_rejected_token_is_not_logged(monkeypatch, caplog):
+    """google-auth copies a malformed token into its error text; the log line must not.
+
+    The realistic case is an OAuth access token sent instead of an ID token.
+    """
+    monkeypatch.setattr(
+        google_requests, "Request", lambda: lambda *args, **kwargs: _EmptyCertsResponse()
+    )
+    # Stand-in for an OAuth access token: one dot, so it is not a JWT.
+    access_token = "example-access-token.not-an-id-token"
+    client = TestClient(create_test_app(audience="https://agent.example.com"))
+
+    with caplog.at_level(logging.WARNING, logger="app.auth_middleware"):
+        res = client.post("/run_sse", headers={"Authorization": f"Bearer {access_token}"})
+
+    assert res.status_code == 401
+    assert "MalformedError" in caplog.text
+    assert "[redacted]" in caplog.text
+    assert access_token not in caplog.text
+
+
+@patch("google.oauth2.id_token.verify_oauth2_token")
+def test_rejection_reason_is_logged(mock_verify, caplog):
+    """The reason (wrong audience, expired, ...) stays in the log for debugging."""
+    mock_verify.side_effect = ValueError("Token has wrong audience https://other.example")
+    client = TestClient(create_test_app(audience="https://agent.example.com"))
+
+    with caplog.at_level(logging.WARNING, logger="app.auth_middleware"):
+        client.post("/run_sse", headers={"Authorization": "Bearer other-service-token"})
+
+    assert "ValueError: Token has wrong audience https://other.example" in caplog.text

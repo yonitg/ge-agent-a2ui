@@ -254,7 +254,8 @@ Gemini Enterprise will invoke the agent via A2A, receive the declarative A2UI pa
 This is a demo. Before you adapt it:
 * **Keep the service private.** `deploy.sh` deploys with `--no-allow-unauthenticated`; only principals with Cloud Run Invoker on the service (you and the Gemini Enterprise service agent) can call it. `ALLOW_UNAUTHENTICATED=true` exposes the agent, its Vertex AI usage and the reports to anyone who finds the URL.
 * **Dedicated runtime service account.** `deploy.sh` runs the service as `a2ui-agent-runtime@<PROJECT_ID>.iam.gserviceaccount.com` with only `roles/aiplatform.user`, rather than the default Compute Engine service account.
-* **In-app token check is for non-Cloud Run hosting only.** `ENFORCE_IAM_AUTH` / `ALLOWED_SERVICE_ACCOUNTS` verify `Authorization: Bearer` ID tokens minted for `AGENT_URL`. On Cloud Run, Gemini Enterprise sends its token in `X-Serverless-Authorization`, which Cloud Run IAM consumes, so leave these unset there.
+* **In-app token check is for non-Cloud Run hosting only.** `ENFORCE_IAM_AUTH` / `ALLOWED_SERVICE_ACCOUNTS` verify `Authorization: Bearer` ID tokens minted for `AGENT_URL`. On Cloud Run, Gemini Enterprise sends its token in `X-Serverless-Authorization`, which Cloud Run IAM consumes, so leave these unset there. A rejected token is logged with the reason, never the token itself.
+* **Registration script.** `register_gemini_enterprise.py` sends requests only over HTTPS and never follows redirects. Your ID token goes only to the `*.run.app` service, and your access token only to the Discovery Engine API; `--location` must be a plain location ID such as `eu`.
 * **Demo storage.** Reports live in `/tmp/reports.json` and generated sketches in memory. They are shared by all users of the instance and reset when it restarts. Use a real database with per-user access control for anything beyond a demo.
 * **Unprivileged container.** The image runs as UID 10001, not root. The code and its virtualenv are read-only to that user; the app only writes to `/tmp`.
 * **Cost controls.** Every new report calls the Vertex AI image model. The service is capped at `MAX_INSTANCES` (default 1), free-text fields are length-limited, and identical submissions within two minutes are deduplicated. Surfaces the user already has are replaced with a one-line note before each model call, so a long chat does not resend the inline images to Gemini. Set a [budget alert](https://cloud.google.com/billing/docs/how-to/budgets) on the project as well.
@@ -316,7 +317,7 @@ Tests cover:
 * **Gallery**: The 9 most recent reports get a tile, newest first, and the dashboard message stays small enough for Gemini Enterprise to re-render a reopened chat.
 * **Dialog & Menu**: The dialog starts closed (reopening a chat does not pop it up), and Confirm, Cancel and menu choices update the card they came from.
 * **Prompt Size**: Surfaces already rendered to the user are not resent to the model.
-* **Security & Middleware**: ID token checks (audience, allowed service accounts, generic 401 body) and the registration script's icon and token handling.
+* **Security & Middleware**: ID token checks (audience, allowed service accounts, generic 401 body, no token in the logs) and the registration script's icon, token and URL handling (HTTPS only, no redirects, fixed API host).
 
 ---
 

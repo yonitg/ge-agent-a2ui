@@ -11,6 +11,25 @@ from starlette.responses import JSONResponse, Response
 
 logger = logging.getLogger(__name__)
 
+# Upper bound for the failure reason written to the log.
+_MAX_REASON_CHARS = 300
+
+
+def _describe_verification_error(error: Exception, token: str) -> str:
+    """Summarize a token verification failure for the log, without the token.
+
+    google-auth copies the presented value into some error messages, e.g.
+    "Wrong number of segments in token: b'<token>'". Logging str(error) as-is
+    would write a credential sent by mistake, such as an OAuth access token, to
+    the logs.
+    """
+    reason = str(error)
+    if token:
+        reason = reason.replace(token, "[redacted]")
+    if len(reason) > _MAX_REASON_CHARS:
+        reason = reason[:_MAX_REASON_CHARS] + "..."
+    return f"{type(error).__name__}: {reason}"
+
 
 class GoogleIAMAuthMiddleware(BaseHTTPMiddleware):
     """Starlette middleware to validate Google OIDC ID tokens.
@@ -83,7 +102,9 @@ class GoogleIAMAuthMiddleware(BaseHTTPMiddleware):
                 audience=self.audience,
             )
         except Exception as e:
-            logger.warning("Token verification failed for %s: %s", path, str(e))
+            logger.warning(
+                "Rejected request to %s: %s", path, _describe_verification_error(e, token)
+            )
             return JSONResponse(
                 {"error": "Unauthorized: Google ID token verification failed"},
                 status_code=401,

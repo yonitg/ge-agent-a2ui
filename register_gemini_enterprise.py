@@ -7,6 +7,7 @@ import argparse
 import base64
 import json
 import os
+import re
 import subprocess
 import sys
 import urllib.error
@@ -17,6 +18,31 @@ import urllib.request
 BUNDLED_ICON_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "app", "assets", "agent_icon.png"
 )
+
+# Gemini Enterprise location IDs, such as global, eu or us.
+_LOCATION_ID = re.compile(r"[a-z0-9-]+")
+
+
+def _build_https_opener() -> urllib.request.OpenerDirector:
+    """Build the opener that sends every request this script makes.
+
+    Unlike urllib.request.urlopen, it only speaks HTTPS (no file://, ftp:// or
+    http:// handlers) and never follows redirects, so the bearer token a request
+    carries only reaches the host the request was built for.
+    """
+    opener = urllib.request.OpenerDirector()
+    for handler in (
+        urllib.request.ProxyHandler(),  # honors https_proxy / no_proxy, like urlopen
+        urllib.request.UnknownHandler(),  # any other URL scheme raises URLError
+        urllib.request.HTTPSHandler(),
+        urllib.request.HTTPDefaultErrorHandler(),  # non-2xx, redirects included: HTTPError
+        urllib.request.HTTPErrorProcessor(),
+    ):
+        opener.add_handler(handler)
+    return opener
+
+
+_HTTPS_OPENER = _build_https_opener()
 
 
 def get_gcloud_token() -> str:
@@ -58,6 +84,25 @@ def is_cloud_run_url(url: str) -> bool:
     return parsed.scheme == "https" and (parsed.hostname or "").endswith(".run.app")
 
 
+def https_url(value: str) -> str:
+    """Return value if it is an https:// URL with a host, else raise ValueError."""
+    parsed = urllib.parse.urlparse(value)
+    if parsed.scheme != "https" or not parsed.hostname:
+        raise ValueError(f"not an https:// URL: {value!r}")
+    return value
+
+
+def location_id(value: str) -> str:
+    """Return value if it is a location ID such as global, eu or us, else raise ValueError.
+
+    The location becomes part of the API hostname, so any other value could send
+    the request, and the gcloud access token it carries, to another host.
+    """
+    if not _LOCATION_ID.fullmatch(value):
+        raise ValueError(f"invalid Gemini Enterprise location: {value!r}")
+    return value
+
+
 def get_agent_card(service_url: str) -> dict:
     card_url = f"{service_url.rstrip('/')}/.well-known/agent-card.json"
     print(f"Fetching agent card from: {card_url}")
@@ -70,7 +115,7 @@ def get_agent_card(service_url: str) -> dict:
             headers["Authorization"] = f"Bearer {id_token}"
     req = urllib.request.Request(card_url, headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=15) as resp:
+        with _HTTPS_OPENER.open(req, timeout=15) as resp:
             return json.loads(resp.read().decode())
     except urllib.error.HTTPError as e:
         print(f"Could not fetch the agent card ({e.code}).", file=sys.stderr)
@@ -106,7 +151,7 @@ def build_icon(icon_url: str | None, card: dict) -> dict | None:
 def get_api_endpoint(location: str) -> str:
     if not location or location == "global":
         return "https://discoveryengine.googleapis.com"
-    return f"https://{location}-discoveryengine.googleapis.com"
+    return f"https://{location_id(location)}-discoveryengine.googleapis.com"
 
 
 def list_existing_agents(
@@ -132,7 +177,7 @@ def list_existing_agents(
         },
     )
     try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
+        with _HTTPS_OPENER.open(req, timeout=20) as resp:
             data = json.loads(resp.read().decode())
             return data.get("agents", [])
     except urllib.error.HTTPError as e:
@@ -244,7 +289,7 @@ def register_or_update_agent(
         )
 
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with _HTTPS_OPENER.open(req, timeout=30) as resp:
             res_data = json.loads(resp.read().decode())
             print("\nRegistration Successful!")
             print(f"Agent Name:    {res_data.get('name')}")
@@ -295,7 +340,7 @@ def delete_agent(
                 method="DELETE",
             )
             try:
-                with urllib.request.urlopen(req, timeout=30):
+                with _HTTPS_OPENER.open(req, timeout=30):
                     print(f"Successfully deleted {agent_name}")
                     deleted += 1
             except urllib.error.HTTPError as e:
@@ -309,7 +354,11 @@ def main():
         description="Register or unregister an A2A Agent with Google Gemini Enterprise"
     )
     parser.add_argument("--project", required=True, help="Google Cloud Project ID")
-    parser.add_argument("--service-url", help="Cloud Run service HTTPS URL (https://...run.app)")
+    parser.add_argument(
+        "--service-url",
+        type=https_url,
+        help="Cloud Run service HTTPS URL (https://...run.app)",
+    )
     parser.add_argument(
         "--engine",
         required=True,
@@ -323,6 +372,7 @@ def main():
     parser.add_argument(
         "--location",
         default="global",
+        type=location_id,
         help="Gemini Enterprise app location: global, eu or us (default: global)",
     )
     parser.add_argument(
