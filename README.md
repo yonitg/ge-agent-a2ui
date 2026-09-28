@@ -25,7 +25,7 @@ Designed to showcase rich, responsive, native client-rendered surfaces on **Goog
   * **Tab 4 (Dispatch & Service Form)**: Comprehensive Material 3 input suite (`MaterialSelect`, `MaterialInput`, `MaterialRadioButton`, `MaterialCheckbox`, `MaterialDatepicker`, `MaterialTimepicker`, `MaterialChips`).
 * **Interactive Dialogs & Context Menus**:
   A **`MaterialDialog`** that opens in the browser from its trigger button and a **`MaterialMenu`** of ticket actions. Their choices go to the agent, which answers with an `updateDataModel` for the same card: the dialog closes and the card shows the result.
-* **Zero-GCS, Self-Contained Cloud Run Architecture**:
+* **Self-Contained Cloud Run Architecture**:
   * Bundled incident seed database (`app/data/reports.json`).
   * 19 pre-packaged inspection sketches, the welcome banner and the agent icon all ship inside the container and are delivered as compressed **Base64 Data URIs**.
   * No GCS bucket, CDN or other public image hosting is needed, so there is no CORS setup and no public access prevention org policy blockers.
