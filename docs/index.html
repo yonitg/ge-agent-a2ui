@@ -423,7 +423,7 @@
     <section aria-labelledby="flow-title">
       <h2 id="flow-title"><span class="num">03</span> How a request flows</h2>
       <figure class="diagram">
-        <a id="diagram-link" href="architecture.svg" title="Open the full-size diagram"><img src="architecture.svg" width="960" height="460" alt="Architecture: Gemini Enterprise calls the agent over A2A on a private Cloud Run service. The ADK agent uses Gemini on Vertex AI for reasoning and sketch generation and returns A2UI v0.9 JSON, which Gemini Enterprise renders natively."></a>
+        <a id="diagram-link" href="architecture.png" title="Open the full-size diagram"><img src="architecture.png" width="1024" height="490" alt="Architecture in three tiers. Client tier: Gemini Enterprise, its native A2UI renderer and user actions. Google Cloud Run: the standalone agent, an A2A Starlette app on port 8080, the A2A executor and ADK runner, the ADK LlmAgent, native A2UI v0.9 render tools, and packaged reports with Base64 sketches. Google Cloud: Gemini 3.8 Flash on Vertex AI for reasoning and tool calling, and Gemini 3.1 Flash Image for incident sketches. Requests arrive over A2A and A2UI returns over A2A."></a>
         <figcaption>Gemini Enterprise ⇄ A2A ⇄ private Cloud Run agent (ADK) ⇄ Gemini on Vertex AI</figcaption>
       </figure>
       <ol class="flow">

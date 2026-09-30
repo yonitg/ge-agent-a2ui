@@ -72,7 +72,7 @@ Google **Gemini Enterprise** incorporates a native client-side A2UI rendering en
 ## 📐 Architecture
 
 <p align="center">
-  <img src="docs/architecture.svg" alt="A2UI v0.9 ADK Architecture Diagram" width="100%" />
+  <img src="docs/architecture.png" alt="Architecture: Gemini Enterprise (client tier) calls the standalone Cloud Run agent over A2A. The A2A Starlette app, ADK runner and LlmAgent route intents to native A2UI v0.9 render tools, backed by packaged reports and Base64 sketches. Gemini 3.8 Flash on Vertex AI handles reasoning and tool calling, and Gemini 3.1 Flash Image generates incident sketches. A2UI returns over A2A and renders natively." width="100%" />
 </p>
 
 The agent runs as a containerized Starlette/A2A service on Google Cloud Run. Incoming user utterances from Gemini Enterprise or any A2A-compliant client trigger tool calls executed by the Google ADK runner. When maintenance dashboards or reports are requested, the agent constructs native A2UI v0.9 declarative JSON payloads delivered back over A2A and rendered natively in the user's browser.
@@ -280,7 +280,7 @@ This is a demo. Before you adapt it:
 ├── uv.lock                                  # Locked dependency tree
 ├── gemini_enterprise_composite_catalog.json # Official A2UI v0.9 composite catalog
 ├── docs/
-│   ├── architecture.svg                     # Architecture diagram
+│   ├── architecture.png                     # Architecture diagram
 │   └── index.html                           # One-pager (GitHub Pages)
 ├── app/
 │   ├── agent.py                             # ADK LlmAgent definition, prompts, & tools
