@@ -7,9 +7,11 @@ from app.agent_executor import (
     CARD_UPDATED_TEXT,
     SURFACE_HEADER_TEXT,
     _add_leading_text,
+    _normalize_client_capabilities,
     _process_a2ui_parts,
     _repair_catalog_id,
 )
+from app.config import COMPOSITE_CATALOG_ID
 
 VALID_CATALOG_ID = "https://a2ui.org/specification/v0_9/basic_catalog.json"
 HALLUCINATED_CATALOG_ID = "made_up_catalog:v0_9"
@@ -137,4 +139,39 @@ def test_vertex_model_name_qualification(monkeypatch):
     res = config.build_vertex_model_name("gemini-3.7-flash")
     assert "publishers/google/models/gemini-3.7-flash" in res
     assert res.startswith("projects/test-project/")
+
+
+def test_normalize_client_capabilities_unwraps_v09_key():
+    """Version-keyed and hybrid A2uiClientCapabilities must unwrap cleanly for V09Capabilities."""
+    from app.agent import ReportAgent
+
+    basic_id = "https://a2ui.org/specification/v0_9/catalogs/basic/catalog.json"
+    version_keyed = {
+        "v0.9": {
+            "supportedCatalogIds": [basic_id, COMPOSITE_CATALOG_ID],
+        }
+    }
+    hybrid = {
+        "supportedCatalogIds": [basic_id, COMPOSITE_CATALOG_ID],
+        "v0.9": {
+            "supportedCatalogIds": [basic_id, COMPOSITE_CATALOG_ID],
+        },
+    }
+
+    for payload in (version_keyed, hybrid):
+        norm = _normalize_client_capabilities(payload, "0.9")
+        assert norm == {"supportedCatalogIds": [COMPOSITE_CATALOG_ID, basic_id]}
+
+        sm = ReportAgent("http://localhost:8080").get_schema_manager("0.9")
+        catalog = sm.get_selected_catalog(client_ui_capabilities=norm)
+        assert catalog.catalog_id == COMPOSITE_CATALOG_ID
+
+
+def test_normalize_client_capabilities_handles_flat_and_empty():
+    flat = {"supportedCatalogIds": [VALID_CATALOG_ID]}
+    assert _normalize_client_capabilities(flat, "0.9") == flat
+    assert _normalize_client_capabilities({}, "0.9") is None
+    assert _normalize_client_capabilities({"v0.9": {}}, "0.9") is None
+    assert _normalize_client_capabilities(None, "0.9") is None
+
 

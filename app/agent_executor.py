@@ -13,6 +13,7 @@ except ImportError:
     from a2ui.adk.send_a2ui_to_client_toolset import (
         A2uiEventConverter,
     )
+from a2ui.core import A2uiCatalogError
 from a2ui.schema.constants import A2UI_CLIENT_CAPABILITIES_KEY
 from google.adk.a2a.converters.request_converter import (
     AgentRunRequest,
@@ -123,6 +124,46 @@ def _repair_catalog_id(msg: dict, valid_catalog_id: str) -> None:
         valid_catalog_id or COMPOSITE_CATALOG_ID,
     )
     create_surface["catalogId"] = valid_catalog_id or COMPOSITE_CATALOG_ID
+
+
+def _normalize_client_capabilities(
+    capabilities: object, active_ui_version: str = "0.9"
+) -> dict | None:
+    """Unwrap version-keyed A2uiClientCapabilities into flat V09Capabilities fields.
+
+    The A2UI v0.9 schema (`A2uiClientCapabilities`) nests capabilities under a
+    version key (`{"v0.9": {"supportedCatalogIds": [...]}}`), or sends both
+    top-level and version-keyed entries, whereas `DirectJsonFormat` validates
+    `client_ui_capabilities` directly against `V09Capabilities` (`extra="forbid"`).
+    """
+    if not isinstance(capabilities, dict):
+        return None
+
+    ver = active_ui_version.lstrip("v")
+    nested = capabilities.get(f"v{ver}")
+    if not isinstance(nested, dict):
+        nested = capabilities.get(ver)
+    source = nested if isinstance(nested, dict) else capabilities
+
+    normalized: dict = {}
+    for key in ("supportedCatalogIds", "supported_catalog_ids"):
+        val = source.get(key) if key in source else capabilities.get(key)
+        if isinstance(val, list):
+            catalog_ids = [c for c in val if isinstance(c, str)]
+            if COMPOSITE_CATALOG_ID in catalog_ids:
+                catalog_ids = [COMPOSITE_CATALOG_ID] + [
+                    c for c in catalog_ids if c != COMPOSITE_CATALOG_ID
+                ]
+            normalized["supportedCatalogIds"] = catalog_ids
+            break
+
+    for key in ("inlineCatalogs", "inline_catalogs"):
+        val = source.get(key) if key in source else capabilities.get(key)
+        if isinstance(val, list):
+            normalized["inlineCatalogs"] = val
+            break
+
+    return normalized or None
 
 
 def _process_a2ui_parts(parts: list, valid_catalog_id: str | None = None) -> list:
@@ -263,14 +304,24 @@ class ReportExecutor(A2aAgentExecutor):
             session.state["base_url"] = self._base_url
 
         if active_ui_version and schema_manager:
-            capabilities = (
+            raw_capabilities = (
                 context.message.metadata.get(A2UI_CLIENT_CAPABILITIES_KEY)
                 if context.message and context.message.metadata
                 else None
             )
-            a2ui_catalog = schema_manager.get_selected_catalog(
-                client_ui_capabilities=capabilities
+            capabilities = _normalize_client_capabilities(
+                raw_capabilities, active_ui_version
             )
+            try:
+                a2ui_catalog = schema_manager.get_selected_catalog(
+                    client_ui_capabilities=capabilities
+                )
+            except A2uiCatalogError:
+                logger.warning(
+                    "Falling back to default catalog after capability negotiation error",
+                    exc_info=True,
+                )
+                a2ui_catalog = schema_manager.get_selected_catalog()
             examples = schema_manager.load_examples(a2ui_catalog, validate=True)
 
             await runner.session_service.append_event(
